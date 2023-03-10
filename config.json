@@ -1,0 +1,30 @@
+{
+  "yunfan-mobile-sales-frontend":{
+    "appid":"wxf5dbe88678cb9592",
+    "version":"1.0.6"
+  },
+  "yunfan-mobile-store-frontend":{
+    "appid":"wx9553e5c1b79c3560",
+    "version":"1.0.4"
+  },
+  "yunfan-mobile-purchase-frontend":{
+    "appid":"wx460ffc8ffc5b6f97",
+    "version":"1.0.10"
+  },
+  "yunfan-mobile-shop-frontend":{
+    "appid":"wx106cb15e46d7b864",
+    "version":"1.0.25"
+  },
+  "yunfan-mobile-boss-frontend":{
+    "appid":"wx1a82fa9add7d9dbb",
+    "version":"1.0.4"
+  },
+  "yunfan-mobile-frontend":{
+    "appid":"wx7ce2c2bbe8c16d10",
+    "version":"1.0.4"
+  },
+  "yunfan-mobile-scm-frontend":{
+    "appid":"wx1fb094058511b420",
+    "version":"1.0.4"
+  }
+}
