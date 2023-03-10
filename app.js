@@ -30,8 +30,8 @@ const update = (app,remark)=>{
       version: version,
       desc: remark, 
       setting: {
-        es6: false,// 是否 "es6 转 es5"
-        es7: false,// 是否 "es7 转 es5"
+        es6: true,// 是否 "es6 转 es5"
+        es7: true,// 是否 "es7 转 es5"
         autoPrefixWXSS: true,
         minify: true,// 是否压缩代码
       },
