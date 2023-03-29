@@ -1,1 +1,4 @@
 node_modules
+*.jpg
+test.js
+origin.js

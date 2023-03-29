@@ -1,104 +1,249 @@
+#!/usr/bin/env node
 const inquirer = require("inquirer");
 const shell = require("shelljs");
-const path = require('path')
-const fs = require('fs');
-const ci = require('miniprogram-ci');
-const _config = require('./config.json')
+const path = require("path");
+const fs = require("fs");
+const ci = require("miniprogram-ci");
+const jsonfile = require("jsonfile");
+const { Command } = require('commander');
+const program = new Command();
 
+program
+  .name('wx-cli')
+  .description('uniapp 一键构建发包上传')
+  .version('1.0.0');
 
-const appDir = path.resolve(__dirname, '../')
+const pattern = /^(yunfan-mobile)([^\s]*)(-frontend)$/;
 
-const getDir = async (filename) => {
-  let dirArr = await fs.promises.readdir(filename);
-  dirArr = dirArr.filter(v => /^(yunfan-mobile)([^\s]*)(-frontend)$/.test(v))
-  return Promise.all(dirArr)
+/**
+ *
+ * @returns 获取上一层目录
+ */
+const getUpperStorytDirectory = () => path.resolve(__dirname, "../");
+
+/**
+ *
+ * @param {path} path 文件路径名
+ * @returns 当前工作目录中，小程序的应用
+ */
+const getDirectory = async path => {
+  const dirArr = await fs.promises.readdir(path);
+  const result = [];
+  for (const dir of dirArr) {
+    if (pattern.test(dir)) {
+      result.push(dir);
+    }
+  }
+  return result;
+};
+
+const getVersion = path => {
+  return new Promise((resolve, reject) => {
+    shell.exec(
+      `${path} && git describe --abbrev=0 --tags`,
+      {
+        silent: true
+      },
+      (error, stdout, stderr) => {
+        if (error) {
+          console.error(`exec error: ${error}`);
+          reject(error);
+          return;
+        }
+        const latestTag = stdout.trim();
+        resolve(latestTag);
+      }
+    );
+  });
+};
+
+/**
+ * 
+ * @param {string} appId 小程序Id
+ * @param {string} app 小程序名
+ * @returns 返回一个ci实例
+ */
+const getInstance = (appId, app) => {
+  return new ci.Project({
+    appid: appId, // 小程序appid
+    type: "miniProgram", // 类型，小程序或小游戏
+    projectPath: path.join(__dirname, `../${app}/dist/build/mp-weixin`), // 项目路径
+    privateKeyPath: path.join(__dirname, `/keys/${app}.key`), // 密钥路径
+    ignores: ["node_modules/**/*"] // 忽略的文件
+  });
 }
 
-const update = (app,remark)=>{
-  return new Promise(async (resovle)=>{
-    const version =  _config[app].version
-    const appid = _config[app].appid
-    const project = new ci.Project({
-      appid: appid, // 小程序appid
-      type: "miniProgram", // 类型，小程序或小游戏
-      projectPath: path.join(__dirname, `../${app}/dist/build/mp-weixin`), // 项目路径
-      privateKeyPath: process.cwd() + `/keys/${app}.key`, // 密钥路径
-      ignores: ["node_modules/**/*"], // 忽略的文件
-    });
+
+//上传
+const update = (option) => {
+  const { app, appId, version, remark, robot } = option
+  return new Promise(async resovle => {
+    const project = getInstance(appId, app)
     ci.upload({
       project,
       version: version,
-      desc: remark, 
+      desc: remark,
+      robot: robot,
       setting: {
-        es6: true,// 是否 "es6 转 es5"
-        es7: true,// 是否 "es7 转 es5"
+        es6: true, // 是否 "es6 转 es5"
+        es7: true, // 是否 "es7 转 es5"
         autoPrefixWXSS: true,
-        minify: true,// 是否压缩代码
+        minify: true // 是否压缩代码
       },
-      onProgressUpdate:(res)=>{
-        console.log(`${app}:${res}`)
+      onProgressUpdate: res => {
+        console.log(`${app}:${res}`);
       }
     })
-      .then(async (res) => {
-        console.log(`${app}上传成功`)
+      .then(async res => {
+        console.log(`${app}上传成功`);
         resovle();
       })
-      .catch((error) => {
-        console.log(`${app}上传失败:${error}`)
+      .catch(error => {
+        console.log(`${app}上传失败:${error}`);
         resovle();
         process.exit(-1);
       });
-  })
-}
+  });
+};
 
-const runInquirer = (dirName) => {
-  inquirer
-    .prompt([
-      {
-        type: "list",
-        message: "请选择你要发布的环境",
-        name: "env",
-        choices: [
-          { name: 'dev', value: "build:dev:mp-weixin" },
-          { name: 'test', value: "build:test:mp-weixin" },
-          { name: 'pre', value: "build:pre:mp-weixin" },
-          { name: 'pro', value: "build:mp-weixin" },
-        ]
+//预览
+const preview = (option) => {
+  const { app, appId, version, remark, robot, pagePath } = option
+  return new Promise(async resovle => {
+    const project = getInstance(appId, app)
+    ci.preview({
+      project,
+      version: version,
+      desc: remark,
+      robot: robot,
+      setting: {
+        es6: true, // 是否 "es6 转 es5"
+        es7: true, // 是否 "es7 转 es5"
+        autoPrefixWXSS: true,
+        minify: true // 是否压缩代码
       },
-      {
-        type: "checkbox",
-        message: "请选择你要发布的小程序?",
-        name: "apps",
-        choices: dirName.map(v => ({ name: v, value: v }))
-      },
-      {
-        type: "input", // 类型
-        name: "remark", // 字段名称，在then里可以打印出来
-        message: "备注:", // 提示信息
-      },
-    ])
-    .then(async answers => {
-      const { env, apps, remark } = answers
-      if (apps.length === 0) {
-        return
-      }
-      for (const app of apps) {
-        shell.exec(`cd ../ && cd ${app} && npm run ${env}`)
-        await update(app,remark)
+      qrcodeFormat: 'image',
+      qrcodeOutputDest: `./${app}.jpg`,
+      pagePath: pagePath,
+      onProgressUpdate: res => {
+        console.log(`${app}:${res}`);
       }
     })
+      .then(async res => {
+        console.log(`${app}上传成功`);
+        resovle();
+      })
+      .catch(error => {
+        console.log(`${app}上传失败:${error}`);
+        resovle();
+        process.exit(-1);
+      });
+  });
+};
+
+const gather = dirList => {
+  return inquirer.prompt([
+    {
+      type: "list",
+      message: "请选择你要发布的环境",
+      name: "env",
+      choices: [
+        { name: "dev", value: "build:dev:mp-weixin" },
+        { name: "test", value: "build:test:mp-weixin" },
+        { name: "pre", value: "build:pre:mp-weixin" },
+        { name: "pro", value: "build:mp-weixin" }
+      ]
+    },
+    {
+      type: "checkbox",
+      message: "请选择你要发布的小程序?",
+      name: "apps",
+      choices: dirList.map(v => ({ name: v, value: v }))
+    },
+    {
+      type: "input",
+      name: "remark",
+      message: "备注:"
+    }
+  ]);
+};
+
+//更新版本
+function increaseVersion (version) {
+  const verArr = version.split(".");
+  let i = verArr.length - 1;
+  while (i >= 0) {
+    if (verArr[i] < 9) {
+      verArr[i]++;
+      break;
+    } else {
+      verArr[i] = 0;
+      i--;
+    }
+  }
+  if (i < 0) {
+    verArr.unshift("1");
+  }
+  return verArr.join(".");
 }
 
-getDir(appDir).then(res => {
-  runInquirer(res)
-})
+const getManifest = (dir, env) => {
+  return new Promise(resolve => {
+    fs.readFile(`../${dir}/src/manifest.json`, "utf8", (err, data) => {
+      if (err) throw err;
+      // 删除注释
+      data = data.replace(/\/\/.*?\n|\/\*(.*?)\*\//g, "");
+      // 将JSON字符串转换为JavaScript对象
+      const config = JSON.parse(data);
+      resolve({
+        appId: config["mp-weixin"].appid,
+        version: config.versionName
+      });
+      if (env === "pro") {
+        config.versionName = increaseVersion(config.versionName);
+        jsonfile.writeFile(`../${dir}/src/manifest.json`, config, { spaces: 2 }, err => {
+          if (err) throw err;
+          console.log("文件已保存");
+        });
+      }
+    });
+  });
+};
+
+async function init (action, option) {
+  const appList = await getDirectory(getUpperStorytDirectory());
+  const answers = await gather(appList);
+  const { env, apps, remark } = answers;
+  if (apps.length === 0) {
+    console.log("请选择应用");
+    return;
+  }
+  for (const app of apps) {
+    const config = await getManifest(app, env);
+    shell.exec(`cd ../ && cd ${app} && npm run ${env}`);
+    await action({ app, remark, ...config, ...option });
+  }
+}
 
 
+program.command('update')
+  .description('上传小程序')
+  .action(() => {
+    const { robot } = program.opts()
+    init(update, { robot })
+  });
 
 
+program.command('preview')
+  .description('预览小程序')
+  .action(() => {
+    const { robot, pagePath } = program.opts()
+    init(preview, { robot, pagePath })
+  });
 
-
-
+program.option('-r, --robot <number>', '机器人1-31，默认为1', 1);
+program.option('-p, --pagePath <string>', '预览页面路径', 'pages/login/index')
+program.parse();
 
 
 

@@ -1,18 +1,24 @@
 {
-  "name": "weixin-cli",
+  "name": "wx-tool",
   "version": "1.0.0",
   "description": "",
-  "main": "app.js",
+  "bin": {
+    "wx": "./app.js"
+  },
   "scripts": {
+    "start": "node app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "axios": "^1.3.4",
+    "commander": "^10.0.0",
     "inquirer": "^8.0.0",
-    "miniprogram-ci": "^1.9.5",
+    "jsonfile": "^6.1.0",
     "shelljs": "^0.8.5"
+  },
+  "devDependencies": {
+    "miniprogram-ci": "^1.9.6"
   }
 }
