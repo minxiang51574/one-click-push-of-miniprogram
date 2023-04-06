@@ -14,6 +14,8 @@ program
   .version('1.0.0');
 
 const pattern = /^(yunfan-mobile)([^\s]*)(-frontend)$/;
+let appCount = 0
+let appTotal = 0
 
 /**
  *
@@ -36,6 +38,28 @@ const getDirectory = async path => {
   }
   return result;
 };
+
+
+const pushCodeVersion  = (path)=>{
+  return new Promise((resolve, reject) => {
+    shell.exec(
+      `${path} && git add src/manifest.json && git commit src/manifest.json -m "版本同步" && git push`,
+      {
+        silent: true
+      },
+      (error, stdout, stderr) => {
+        if (error) {
+          console.error(`exec error: ${error}`);
+          reject(error);
+          return;
+        }
+        const latestTag = stdout.trim();
+        resolve(latestTag);
+      }
+    );
+  })
+
+}
 
 const getVersion = path => {
   return new Promise((resolve, reject) => {
@@ -91,7 +115,7 @@ const update = (option) => {
         minify: true // 是否压缩代码
       },
       onProgressUpdate: res => {
-        console.log(`${app}:${res}`);
+        console.log(`进度：${appCount}/${appTotal} ${app}:${res}`);
       }
     })
       .then(async res => {
@@ -195,16 +219,19 @@ const getManifest = (dir, env) => {
       data = data.replace(/\/\/.*?\n|\/\*(.*?)\*\//g, "");
       // 将JSON字符串转换为JavaScript对象
       const config = JSON.parse(data);
+      config.versionName = env === 'build:mp-weixin' ? increaseVersion(config.versionName) : config.versionName
       resolve({
         appId: config["mp-weixin"].appid,
         version: config.versionName
       });
-      if (env === "pro") {
-        config.versionName = increaseVersion(config.versionName);
-        jsonfile.writeFile(`../${dir}/src/manifest.json`, config, { spaces: 2 }, err => {
-          if (err) throw err;
-          console.log("文件已保存");
-        });
+      if (env === 'build:mp-weixin') {
+        setTimeout(()=>{
+          jsonfile.writeFile(`../${dir}/src/manifest.json`, config, { spaces: 2 }, err => {
+            if (err) throw err;
+            pushCodeVersion(`cd ../${dir}`)
+            console.log("文件已保存");
+          });
+        },0)
       }
     });
   });
@@ -218,9 +245,11 @@ async function init (action, option) {
     console.log("请选择应用");
     return;
   }
+  appTotal = apps.length
   for (const app of apps) {
+    appCount++
     const config = await getManifest(app, env);
-    shell.exec(`cd ../ && cd ${app} && npm run ${env}`);
+    shell.exec(`cd ../ && cd ${app} ${option.install ? '&& npm i' : ''} && npm run ${env}`);
     await action({ app, remark, ...config, ...option });
   }
 }
@@ -229,8 +258,8 @@ async function init (action, option) {
 program.command('update')
   .description('上传小程序')
   .action(() => {
-    const { robot } = program.opts()
-    init(update, { robot })
+    const { robot,install } = program.opts()
+    init(update, { robot ,install })
   });
 
 
@@ -243,6 +272,7 @@ program.command('preview')
 
 program.option('-r, --robot <number>', '机器人1-31，默认为1', 1);
 program.option('-p, --pagePath <string>', '预览页面路径', 'pages/login/index')
+program.option('-i, --install', '依赖下载')
 program.parse();
 
 
