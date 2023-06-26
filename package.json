@@ -19,6 +19,6 @@
     "shelljs": "^0.8.5"
   },
   "devDependencies": {
-    "miniprogram-ci": "^1.9.6"
+    "miniprogram-ci": "^1.9.8"
   }
 }

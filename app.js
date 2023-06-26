@@ -40,7 +40,7 @@ const getDirectory = async path => {
 };
 
 
-const pushCodeVersion  = (path)=>{
+const pushCodeVersion = (path) => {
   return new Promise((resolve, reject) => {
     shell.exec(
       `${path} && git add src/manifest.json && git commit src/manifest.json -m "版本同步" && git push`,
@@ -109,10 +109,12 @@ const update = (option) => {
       desc: remark,
       robot: robot,
       setting: {
-        es6: true, // 是否 "es6 转 es5"
-        es7: true, // 是否 "es7 转 es5"
+        es6: true,
+        es7: true,
+        minify: true,
         autoPrefixWXSS: true,
-        minify: true // 是否压缩代码
+        minifyWXML: true,
+        minifyJS: true,
       },
       onProgressUpdate: res => {
         console.log(`进度：${appCount}/${appTotal} ${app}:${res}`);
@@ -143,8 +145,10 @@ const preview = (option) => {
       setting: {
         es6: true, // 是否 "es6 转 es5"
         es7: true, // 是否 "es7 转 es5"
+        minify: true, // 是否压缩代码,
         autoPrefixWXSS: true,
-        minify: true // 是否压缩代码
+        minifyWXML: true,
+        minifyJS: true,
       },
       qrcodeFormat: 'image',
       qrcodeOutputDest: `./${app}.jpg`,
@@ -225,13 +229,13 @@ const getManifest = (dir, env) => {
         version: config.versionName
       });
       if (env === 'build:mp-weixin') {
-        setTimeout(()=>{
+        setTimeout(() => {
           jsonfile.writeFile(`../${dir}/src/manifest.json`, config, { spaces: 2 }, err => {
             if (err) throw err;
             pushCodeVersion(`cd ../${dir}`)
             console.log("文件已保存");
           });
-        },0)
+        }, 0)
       }
     });
   });
@@ -258,8 +262,8 @@ async function init (action, option) {
 program.command('update')
   .description('上传小程序')
   .action(() => {
-    const { robot,install } = program.opts()
-    init(update, { robot ,install })
+    const { robot, install } = program.opts()
+    init(update, { robot, install })
   });
 
 
