@@ -40,10 +40,32 @@ const getDirectory = async path => {
 };
 
 
-const pushCodeVersion = (path) => {
+const pushCodeVersion = (path, fileName = 'src/manifest.json') => {
   return new Promise((resolve, reject) => {
     shell.exec(
-      `${path} && git add src/manifest.json && git commit src/manifest.json -m "版本同步" && git push`,
+      `${path} && git add ${fileName} && git commit ${fileName} -m "版本同步" && git push`,
+      {
+        silent: true
+      },
+      (error, stdout, stderr) => {
+        if (error) {
+          console.error(`exec error: ${error}`);
+          reject(error);
+          return;
+        }
+        const latestTag = stdout.trim();
+        resolve(latestTag);
+      }
+    );
+  })
+
+}
+
+
+const pushCodeInstall = (path) => {
+  return new Promise((resolve, reject) => {
+    shell.exec(
+      `${path} && npm i && git add package.json package-lock && git commit package.json package-lock -m "版本同步" && git push`,
       {
         silent: true
       },
@@ -109,12 +131,12 @@ const update = (option) => {
       desc: remark,
       robot: robot,
       setting: {
-        es6: true,
-        es7: true,
-        minify: true,
-        autoPrefixWXSS: true,
-        minifyWXML: true,
+        es6: true, // 是否 "es6 转 es5"
+        es7: true, // 是否 "es7 转 es5"
+        minify: true, // 是否压缩代码,
         minifyJS: true,
+        minifyWXML: true,
+        minifyWXSS: true,
       },
       onProgressUpdate: res => {
         console.log(`进度：${appCount}/${appTotal} ${app}:${res}`);
@@ -196,6 +218,29 @@ const gather = dirList => {
   ]);
 };
 
+
+const gatherApps = dirList => {
+  return inquirer.prompt([
+    {
+      type: "checkbox",
+      message: "请选择你要更新的程序?",
+      name: "apps",
+      choices: dirList.map(v => ({ name: v, value: v }))
+    },
+    {
+      type: "checkbox",
+      message: "请选择切换的分支？",
+      name: "branch",
+      choices: [
+        { name: "master", value: 'master' },
+        { name: "test", value: 'test' },
+        { name: "v1.6.5", value: 'feature/v1.6.5' }
+      ]
+    },
+  ]);
+};
+
+
 //更新版本
 function increaseVersion (version) {
   const verArr = version.split(".");
@@ -241,6 +286,40 @@ const getManifest = (dir, env) => {
   });
 };
 
+
+
+const updatePatch = (version) => {
+  const code = version.split('.')
+  return '^0.1.102'
+}
+
+const updatePackage = (dir) => {
+  return new Promise(resolve => {
+    fs.readFile(`../${dir}/package.json`, "utf8", (err, data) => {
+      if (err) throw err;
+      // 删除注释
+      data = data.replace(/\/\/.*?\n|\/\*(.*?)\*\//g, "");
+      // 将JSON字符串转换为JavaScript对象
+      const config = JSON.parse(data);
+
+      config.dependencies[`@yunfan/frame-uniapp`] = updatePatch(config.dependencies[`@yunfan/frame-uniapp`])
+      config.dependencies['@km/mdm-ui'] = "^0.0.51"
+      // config.dependencies[`@km/mdm-ui`] = "^0.0.28"
+      // config.dependencies[`@km/mdm-ui`] = '^0.0.24'
+
+
+      setTimeout(() => {
+        jsonfile.writeFile(`../${dir}/package.json`, config, { spaces: 2 }, err => {
+          if (err) throw err;
+          resolve()
+          console.log("文件已保存");
+        });
+      }, 0)
+
+    });
+  });
+};
+
 async function init (action, option) {
   const appList = await getDirectory(getUpperStorytDirectory());
   const answers = await gather(appList);
@@ -259,6 +338,43 @@ async function init (action, option) {
 }
 
 
+async function installInit () {
+  const appList = await getDirectory(getUpperStorytDirectory());
+  const answers = await gatherApps(appList);
+  const { apps, } = answers;
+  if (apps.length === 0) {
+    console.log("请选择应用");
+    return;
+  }
+  appTotal = apps.length
+  for (const app of apps) {
+    appCount++
+    await updatePackage(app)
+    console.log("%c Line:279 🥖 apps", "color:#3f7cff", app);
+    // const config = await getManifest(app, env);
+    // && git checkout master && git pull && git merge feature/v1.6.4 && git push
+    shell.exec(`cd ../ && cd ${app} && npm install && git pull && git add package.json package-lock.json && git commit package.json package-lock.json -m "版本同步" && git push`);
+
+  }
+}
+
+async function checkoutInstall () {
+  const appList = await getDirectory(getUpperStorytDirectory());
+  const answers = await gatherApps(appList);
+  const { apps, branch} = answers;
+  if (apps.length === 0) {
+    console.log("请选择应用");
+    return;
+  }
+  appTotal = apps.length
+  for (const app of apps) {
+    appCount++
+    console.log(app + '：切成功')
+    shell.exec(`cd ../ && cd ${app} &&  git pull && git checkout ${branch}`);
+    // shell.exec(`cd ../ && cd ${app} &&  git pull && npm link @yunfan/frame-uniapp`);
+  }
+}
+
 program.command('update')
   .description('上传小程序')
   .action(() => {
@@ -272,6 +388,19 @@ program.command('preview')
   .action(() => {
     const { robot, pagePath } = program.opts()
     init(preview, { robot, pagePath })
+  });
+
+
+program.command('install')
+  .description('安装最新的远程服务包')
+  .action(() => {
+    installInit()
+  });
+
+program.command('checkout')
+  .description('安装最新的远程服务包')
+  .action(() => {
+    checkoutInstall()
   });
 
 program.option('-r, --robot <number>', '机器人1-31，默认为1', 1);
