@@ -16,7 +16,7 @@
     "commander": "^10.0.0",
     "inquirer": "^8.0.0",
     "jsonfile": "^6.1.0",
-    "miniprogram-ci": "^1.9.8",
+    "miniprogram-ci": "^1.9.15",
     "shelljs": "^0.8.5"
   }
 }
