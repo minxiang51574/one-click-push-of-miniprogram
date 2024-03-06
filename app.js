@@ -122,6 +122,7 @@ const getInstance = (appId, app) => {
 
 //上传
 const update = (option) => {
+  console.log('开始上传')
   const { app, appId, version, remark, robot } = option
   return new Promise(async resovle => {
     const project = getInstance(appId, app)
@@ -139,15 +140,15 @@ const update = (option) => {
         minifyWXSS: true,
       },
       onProgressUpdate: res => {
-        console.log(`进度：${appCount}/${appTotal} ${app}:${res}`);
+        // process.stdout.write(`进度：${appCount}/${appTotal} ${app}:${res}`)
       }
     })
       .then(async res => {
-        console.log(`${app}上传成功`);
+        process.stdout.write(`${app}上传成功`)
         resovle();
       })
       .catch(error => {
-        console.log(`${app}上传失败:${error}`);
+        process.stderr.write(`${app}上传失败:${error}`)
         resovle();
         process.exit(-1);
       });
@@ -337,6 +338,19 @@ async function init (action, option) {
   }
 }
 
+async function autoInit (action, option) {
+  const { env, app, remark } = option;
+  if (!app) {
+    process.stdout.write('请选择应用')
+    return;
+  }
+  appTotal = 1
+  appCount++
+  const config = await getManifest(app, env);
+  shell.exec(`cd ../ && cd ${app} && npm run "build:${env === 'master' ? '' : `${env}:`}mp-weixin"`);
+  await action({ app, remark, ...config, ...option});
+}
+
 
 async function installInit () {
   const appList = await getDirectory(getUpperStorytDirectory());
@@ -403,6 +417,16 @@ program.command('checkout')
     checkoutInstall()
   });
 
+program.command('push')
+  .description('自动化上传小程序')
+  .action(() => {
+    const res = program.opts()
+    autoInit(update, res)
+  });
+
+program.option('-a, --app <string>', 'app 名称', '');
+program.option('-e, --env <string>', '环境', '');
+program.option('-m, --remark <string>', '备注', '');
 program.option('-r, --robot <number>', '机器人1-31，默认为1', 1);
 program.option('-p, --pagePath <string>', '预览页面路径', 'pages/login/index')
 program.option('-i, --install', '依赖下载')

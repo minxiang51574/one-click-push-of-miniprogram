@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "bin": {
-    "wx": "./app.js"
+    "wxx": "./app.js"
   },
   "scripts": {
     "start": "node app.js",
