@@ -227,16 +227,6 @@ const gatherApps = dirList => {
       name: "apps",
       choices: dirList.map(v => ({ name: v, value: v }))
     },
-    {
-      type: "checkbox",
-      message: "请选择切换的分支？",
-      name: "branch",
-      choices: [
-        { name: "master", value: 'master' },
-        { name: "test", value: 'test' },
-        { name: "v1.6.5", value: 'feature/v1.6.5' }
-      ]
-    },
   ]);
 };
 
@@ -287,10 +277,9 @@ const getManifest = (dir, env) => {
 };
 
 
-
 const updatePatch = (version) => {
   const code = version.split('.')
-  return '^0.1.102'
+  return '^0.1.192'
 }
 
 const updatePackage = (dir) => {
@@ -303,7 +292,7 @@ const updatePackage = (dir) => {
       const config = JSON.parse(data);
 
       config.dependencies[`@yunfan/frame-uniapp`] = updatePatch(config.dependencies[`@yunfan/frame-uniapp`])
-      config.dependencies['@km/mdm-ui'] = "^0.0.51"
+      config.dependencies['@km/mdm-ui'] = "^0.0.85"
       // config.dependencies[`@km/mdm-ui`] = "^0.0.28"
       // config.dependencies[`@km/mdm-ui`] = '^0.0.24'
 
