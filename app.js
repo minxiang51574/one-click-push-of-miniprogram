@@ -283,7 +283,7 @@ const updatePatch = (version) => {
   return '^0.1.192'
 }
 
-const updatePackage = (dir) => {
+const updatePackage = (dir, {yf, mdm}) => {
   return new Promise(resolve => {
     fs.readFile(`../${dir}/package.json`, "utf8", (err, data) => {
       if (err) throw err;
@@ -292,8 +292,8 @@ const updatePackage = (dir) => {
       // 将JSON字符串转换为JavaScript对象
       const config = JSON.parse(data);
 
-      config.dependencies[`@yunfan/frame-uniapp`] = updatePatch(config.dependencies[`@yunfan/frame-uniapp`])
-      config.dependencies['@km/mdm-ui'] = "^0.0.85"
+      if (yf && yf !== 'null') config.dependencies[`@yunfan/frame-uniapp`] = `^`+yf
+      if (mdm && mdm !== 'null') config.dependencies['@km/mdm-ui'] = `^`+mdm // "^0.0.85"
       // config.dependencies[`@km/mdm-ui`] = "^0.0.28"
       // config.dependencies[`@km/mdm-ui`] = '^0.0.24'
 
@@ -341,24 +341,12 @@ async function autoInit (action, option) {
 }
 
 
-async function installInit () {
-  const appList = await getDirectory(getUpperStorytDirectory());
-  const answers = await gatherApps(appList);
-  const { apps, } = answers;
-  if (apps.length === 0) {
-    console.log("请选择应用");
-    return;
-  }
-  appTotal = apps.length
-  for (const app of apps) {
-    appCount++
-    await updatePackage(app)
-    console.log("%c Line:279 🥖 apps", "color:#3f7cff", app);
+async function installInit ({app, yf, mdm}) {
+  await updatePackage(app, {yf, mdm})
     // const config = await getManifest(app, env);
     // && git checkout master && git pull && git merge feature/v1.6.4 && git push
     shell.exec(`cd ../ && cd ${app} && npm install && git pull && git add package.json package-lock.json && git commit package.json package-lock.json -m "版本同步" && git push`);
-
-  }
+    process.stdout.write(`${app}版本号修改完成`)
 }
 
 async function checkoutInstall () {
@@ -397,7 +385,9 @@ program.command('preview')
 program.command('install')
   .description('安装最新的远程服务包')
   .action(() => {
-    installInit()
+    const res = program.opts()
+    process.stdout.write(`${JSON.stringify(res)}上传成功`)
+    installInit(res)
   });
 
 program.command('checkout')
@@ -420,6 +410,10 @@ program.option('-m, --remark <string>', '备注', '');
 program.option('-r, --robot <number>', '机器人1-31，默认为1', 1);
 program.option('-p, --pagePath <string>', '预览页面路径', 'pages/login/index')
 program.option('-i, --install', '依赖下载')
+
+// 修改版本号
+program.option('-yf, --yf <string>', '@yunfan/frame-uniapp版本号')
+program.option('-mdm, --mdm <string>', '@km/mdm-ui版本号')
 program.parse();
 
 
