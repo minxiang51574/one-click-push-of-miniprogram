@@ -336,7 +336,7 @@ async function autoInit (action, option) {
   appTotal = 1
   appCount++
   const config = await getManifest(app, env);
-  shell.exec(`cd ../ && cd ${app} && npm run "build:${env === 'master' ? '' : `${env}:`}mp-weixin"`);
+  shell.exec(`cd ../ && cd ${app} ${option.install ? '&& npm i' : ''}  && npm run "build:${env === 'master' ? '' : `${env}:`}mp-weixin"`);
   await action({ app, remark, ...config, ...option});
 }
 
@@ -410,6 +410,7 @@ program.command('push')
   .description('自动化上传小程序')
   .action(() => {
     const res = program.opts()
+    // process.stdout.write(`${JSON.stringify(res)}上传成功`)
     autoInit(update, res)
   });
 
