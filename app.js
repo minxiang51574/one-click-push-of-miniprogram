@@ -407,6 +407,7 @@ program.command('push')
 program.option('-a, --app <string>', 'app 名称', '');
 program.option('-e, --env <string>', '环境', '');
 program.option('-m, --remark <string>', '备注', '');
+program.option('-v, --version <string>', '版本号', '');
 program.option('-r, --robot <number>', '机器人1-31，默认为1', 1);
 program.option('-p, --pagePath <string>', '预览页面路径', 'pages/login/index')
 program.option('-i, --install', '依赖下载')
