@@ -123,12 +123,12 @@ const getInstance = (appId, app) => {
 //上传
 const update = (option) => {
   console.log('开始上传')
-  const { app, appId, version, remark, robot } = option
+  const { app, appId, version, versions, remark, robot } = option
   return new Promise(async resovle => {
     const project = getInstance(appId, app)
     ci.upload({
       project,
-      version: version,
+      version: versions || version,
       desc: remark,
       robot: robot,
       setting: {
@@ -407,7 +407,7 @@ program.command('push')
 program.option('-a, --app <string>', 'app 名称', '');
 program.option('-e, --env <string>', '环境', '');
 program.option('-m, --remark <string>', '备注', '');
-program.option('-v, --version <string>', '版本号', '');
+program.option('-v, --versions <string>', '版本号', '');
 program.option('-r, --robot <number>', '机器人1-31，默认为1', 1);
 program.option('-p, --pagePath <string>', '预览页面路径', 'pages/login/index')
 program.option('-i, --install', '依赖下载')
