@@ -123,13 +123,13 @@ const getInstance = (appId, app) => {
 //上传
 const update = (option) => {
   console.log('开始上传')
-  const { app, appId, version, versions, remark, robot } = option
+  const { app, appId, version, versions, remark, robot, env } = option
   return new Promise(async resovle => {
     const project = getInstance(appId, app)
     ci.upload({
       project,
       version: versions || version,
-      desc: remark,
+      desc: `当前环境：${env}=> ${remark}`,
       robot: robot,
       setting: {
         es6: true, // 是否 "es6 转 es5"
