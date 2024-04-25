@@ -341,11 +341,12 @@ async function autoInit (action, option) {
 }
 
 
-async function installInit ({app, yf, mdm}) {
+async function installInit ({app, yf, mdm, install}) {
   await updatePackage(app, {yf, mdm})
+    process.stdout.write(`${install}版本号修改完成`)
     // const config = await getManifest(app, env);
     // && git checkout master && git pull && git merge feature/v1.6.4 && git push
-    shell.exec(`cd ../ && cd ${app} && npm install && git pull && git add package.json package-lock.json && git commit package.json package-lock.json -m "版本同步" && git push`);
+    shell.exec(`cd ../ && cd ${app} ${install ? '&& npm i' : ''} && git pull && git add package.json package-lock.json && git commit package.json package-lock.json -m "版本同步" && git push`);
     process.stdout.write(`${app}版本号修改完成`)
 }
 
@@ -386,6 +387,7 @@ program.command('install')
   .description('安装最新的远程服务包')
   .action(() => {
     const res = program.opts()
+    res.install = res.install === 'true'
     process.stdout.write(`${JSON.stringify(res)}上传成功`)
     installInit(res)
   });
@@ -400,7 +402,8 @@ program.command('push')
   .description('自动化上传小程序')
   .action(() => {
     const res = program.opts()
-    // process.stdout.write(`${JSON.stringify(res)}上传成功`)
+    res.install = res.install === 'true'
+    process.stdout.write(`${JSON.stringify(res)}上传成功`)
     autoInit(update, res)
   });
 
@@ -410,7 +413,7 @@ program.option('-m, --remark <string>', '备注', '');
 program.option('-v, --versions <string>', '版本号', '');
 program.option('-r, --robot <number>', '机器人1-31，默认为1', 1);
 program.option('-p, --pagePath <string>', '预览页面路径', 'pages/login/index')
-program.option('-i, --install', '依赖下载')
+program.option('-i, --install <boolean>', '依赖下载')
 
 // 修改版本号
 program.option('-yf, --yf <string>', '@yunfan/frame-uniapp版本号')
