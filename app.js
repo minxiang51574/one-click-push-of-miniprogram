@@ -13,7 +13,7 @@ program
   .description('uniapp 一键构建发包上传')
   .version('1.0.0');
 
-const pattern = /^(yunfan-mobile)([^\s]*)(-frontend)$/;
+const pattern = /^(mx)([^\s]*)(-frontend)$/;
 let appCount = 0
 let appTotal = 0
 
@@ -29,7 +29,9 @@ const getUpperStorytDirectory = () => path.resolve(__dirname, "../");
  * @returns 当前工作目录中，小程序的应用
  */
 const getDirectory = async path => {
+  console.log('path', path);
   const dirArr = await fs.promises.readdir(path);
+  console.log('dirArr', dirArr);
   const result = [];
   for (const dir of dirArr) {
     if (pattern.test(dir)) {
@@ -42,21 +44,23 @@ const getDirectory = async path => {
 
 const pushCodeVersion = (path, fileName = 'src/manifest.json') => {
   return new Promise((resolve, reject) => {
-    shell.exec(
-      `${path} && git add ${fileName} && git commit ${fileName} -m "版本同步" && git push`,
-      {
-        silent: true
-      },
-      (error, stdout, stderr) => {
-        if (error) {
-          console.error(`exec error: ${error}`);
-          reject(error);
-          return;
-        }
-        const latestTag = stdout.trim();
-        resolve(latestTag);
-      }
-    );
+    console.log('path', path , fileName);
+    
+    // shell.exec(
+    //   `${path} && git add ${fileName} && git commit ${fileName} -m "版本同步" && git push`,
+    //   {
+    //     silent: true
+    //   },
+    //   (error, stdout, stderr) => {
+    //     if (error) {
+    //       console.error(`exec error: ${error}`);
+    //       reject(error);
+    //       return;
+    //     }
+    //     const latestTag = stdout.trim();
+    //     resolve(latestTag);
+    //   }
+    // );
   })
 
 }
@@ -122,10 +126,12 @@ const getInstance = (appId, app) => {
 
 //上传
 const update = (option) => {
-  console.log('开始上传')
+  console.log('开始上传', option)
   const { app, appId, version, versions, remark, robot, env } = option
   return new Promise(async resovle => {
     const project = getInstance(appId, app)
+    console.log('project','进来了');
+    
     ci.upload({
       project,
       version: versions || version,
@@ -199,10 +205,15 @@ const gather = dirList => {
       message: "请选择你要发布的环境",
       name: "env",
       choices: [
-        { name: "dev", value: "build:dev:mp-weixin" },
-        { name: "test", value: "build:test:mp-weixin" },
-        { name: "pre", value: "build:pre:mp-weixin" },
+        // { name: "dev", value: "build:dev:mp-weixin" },
+        // { name: "test", value: "build:test:mp-weixin" },
+        // { name: "pre", value: "build:pre:mp-weixin" },
+        // { name: "pro", value: "build:mp-weixin" }
+        { name: "dev", value: "build:mp-weixin" },
+        { name: "test", value: "build:mp-weixin" },
+        { name: "pre", value: "build:mp-weixin" },
         { name: "pro", value: "build:mp-weixin" }
+        
       ]
     },
     {
@@ -257,8 +268,10 @@ const getManifest = (dir, env) => {
       if (err) throw err;
       // 删除注释
       data = data.replace(/\/\/.*?\n|\/\*(.*?)\*\//g, "");
+      // console.log('data', data);
       // 将JSON字符串转换为JavaScript对象
       const config = JSON.parse(data);
+      // console.log('config', config);
       config.versionName = env === 'build:mp-weixin' ? increaseVersion(config.versionName) : config.versionName
       resolve({
         appId: config["mp-weixin"].appid,
@@ -312,7 +325,9 @@ const updatePackage = (dir, {yf, mdm}) => {
 
 async function init (action, option) {
   const appList = await getDirectory(getUpperStorytDirectory());
+  console.log('appList',appList);
   const answers = await gather(appList);
+  console.log('answers',answers);
   const { env, apps, remark } = answers;
   if (apps.length === 0) {
     console.log("请选择应用");
@@ -322,6 +337,11 @@ async function init (action, option) {
   for (const app of apps) {
     appCount++
     const config = await getManifest(app, env);
+    console.log('config',config);
+    console.log('app',app);
+    console.log('remark',remark);
+    console.log('option',option);
+
     shell.exec(`cd ../ && cd ${app} ${option.install ? '&& npm i' : ''} && npm run ${env}`);
     await action({ app, remark, ...config, ...option });
   }
